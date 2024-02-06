@@ -1,4 +1,4 @@
-;;; perspective-sets.el --- Organize separate sets of perspective.el perspectives
+;;; perspective-sets.el --- Organize separate sets of perspective.el perspectives -*-lexical-binding: t-*-
 
 ;;; Commentary:
 
@@ -21,6 +21,8 @@
 ;;    -> full-persp-name == "test/main"
 
 ;;; Code:
+
+(require 'perspective)
 
 (defcustom psets/default-pset-name "main"
   "Name of the default pset."
