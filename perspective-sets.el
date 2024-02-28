@@ -22,7 +22,8 @@
 
 ;;; Code:
 
-(require 'perspective)
+(require 'perspective)  ; heavy integration
+(require 'consult)  ; #'consult--read
 
 (defcustom psets/default-pset-name "main"
   "Name of the default pset."
@@ -175,4 +176,17 @@ This should be ran right after loading this package, `perspective-sets'."
          (persp-rename new-full-persp-name)))
      (psets/list-persps-in-pset))))
 
+(defun psets/move-persp-to-pset (&optional target-pset-name)
+  (interactive "i")
+  (let* ((target-pset-name
+          (or target-pset-name
+              (consult--read (remove (psets/extract-pset-from-full-persp-name)
+                                     (psets/list-psets))
+                             :prompt (concat "Move persp \""
+                                             (persp-current-name)
+                                             "\" to new pset: ")
+                             ))))
+    (persp-rename (concat target-pset-name
+                          psets/delimiter
+                          (psets/extract-persp-from-full-persp-name)))))
 (provide 'perspective-sets)
