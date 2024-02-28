@@ -40,8 +40,8 @@
 
 (defun psets/try-to-rename-initial-persp ()
   "If it's safe, rename initial persp to be included in the default pset.
-This should be ran right after loading this package, perspective-sets."
-  ;; Safeguard in case the current persp is not the initial persp
+This should be ran right after loading this package, `perspective-sets'."
+  ;; safeguard in case the current persp is not the initial persp
   (when (string= (persp-current-name)
                  persp-initial-frame-name)
     (persp-rename (psets/full-persp-name psets/default-pset-name
@@ -88,8 +88,7 @@ This should be ran right after loading this package, perspective-sets."
    :test #'string=))
 
 (defun psets/create-pset (pset-name &optional persp-names)
-  "Create a new pset PSET-NAME with optional PERSP-NAMES.
-Automatically prepends PSET-NAME before each of PERSP-NAMES to attain uniqueness."
+  "Create a new pset PSET-NAME with optional PERSP-NAMES using `psets/create-persp'."
   (unless persp-names (setq persp-names (list persp-initial-frame-name)))
   (cl-assert (stringp pset-name))
   (cl-assert (and (listp persp-names) (-every? #'stringp persp-names)))
@@ -105,8 +104,7 @@ Automatically prepends PSET-NAME before each of PERSP-NAMES to attain uniqueness
   "Switch to pset PSET-NAME (creating if necessary)."
   (interactive "i")
   (unless pset-name
-    (setq pset-name
-          (completing-read "Switch to pset: " (psets/list-psets))))
+    (setq pset-name (completing-read "Switch to pset: " (psets/list-psets))))
   (cl-assert (stringp pset-name))
   (if (not (member pset-name (psets/list-psets)))
       (persp-switch (psets/full-persp-name pset-name persp-initial-frame-name))
@@ -117,9 +115,9 @@ Automatically prepends PSET-NAME before each of PERSP-NAMES to attain uniqueness
   "Switch to persp PERSP-NAME (creating if necessary) in pset PSET-NAME or current pset."
   (interactive "i")
   (unless persp-name
-    (setq persp-name
-          (completing-read "Switch to persp: " (psets/list-persps-in-pset))))
-  (unless pset-name (setq pset-name (psets/extract-pset-from-full-persp-name)))
+    (setq persp-name (completing-read "Switch to persp: " (psets/list-persps-in-pset))))
+  (unless pset-name
+    (setq pset-name (psets/extract-pset-from-full-persp-name)))
   (cl-assert (and (stringp persp-name) (stringp pset-name)))
   (persp-switch (psets/full-persp-name pset-name persp-name)))
 
@@ -127,9 +125,9 @@ Automatically prepends PSET-NAME before each of PERSP-NAMES to attain uniqueness
   "Remove persp PERSP-NAME in pset PSET-NAME or current pset."
   (interactive "i")
   (unless persp-name
-    (setq persp-name
-          (completing-read "Kill persp: " (psets/list-persps-in-pset) nil t)))
-  (unless pset-name (setq pset-name (psets/extract-pset-from-full-persp-name)))
+    (setq persp-name (completing-read "Kill persp: " (psets/list-persps-in-pset) nil t)))
+  (unless pset-name
+    (setq pset-name (psets/extract-pset-from-full-persp-name)))
   (cl-assert (and (stringp persp-name) (stringp pset-name)))
   (persp-kill (psets/full-persp-name pset-name persp-name)))
 
@@ -144,7 +142,7 @@ Automatically prepends PSET-NAME before each of PERSP-NAMES to attain uniqueness
     (persp-kill (psets/full-persp-name pset-name persp-name))))
 
 (defun psets/rename-persp (&optional new-persp-name)
-  "Wrapper around #'persp-rename with a nicer prompt."
+  "Pset-aware wrapper around `persp-rename'."
   (interactive "i")
   (let* ((new-persp-name (or new-persp-name
                              (read-from-minibuffer
