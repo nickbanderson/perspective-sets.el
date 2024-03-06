@@ -222,12 +222,22 @@ Example invocations:
   (cl-assert (file-directory-p
               (or dir
                   (setq dir (read-directory-name "Open dir as persp: " search-dir nil t)))))
-  ;; trim trailing slash from dir if needed
-  (when (string= (file-name-nondirectory dir) "")
-    (setq dir (substring dir 0 (1- (length dir)))))
-  (let* ((persp-name (file-name-nondirectory dir))
+  (let* ((dir (psets//trim-dir-trailing-slash dir))
+         (persp-name (file-name-nondirectory dir))
          (preferred-name (cdr (assoc persp-name psets/persp-dir-aliases-alist))))
     (psets/switch-persp (or preferred-name persp-name) (psets/extract-pset-from-full-persp-name))
     (when (functionp post-hook)
       (apply post-hook (list dir)))))
+
+(defun psets//trim-dir-trailing-slash (dir)
+  "If present, removes a trailing slash from a directory path.
+/path/to/thing/ => /path/to/thing
+/another/path => /another/path
+/ => /  ; special case
+
+Warning: doesn't do much verification :)"
+  (if (> (length dir) 1)  ; protect root dir "/" from turning into ""
+      (s-chop-suffix "/" dir)
+    dir))
+
 (provide 'perspective-sets)
