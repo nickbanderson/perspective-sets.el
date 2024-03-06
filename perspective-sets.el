@@ -19,6 +19,9 @@
 ;;    -> full-persp-name == "main/blah"
 ;; 3. Create new pset: M-x psets/switch-pset test RET
 ;;    -> full-persp-name == "test/main"
+;;
+;; TODO
+;; - through 'marginalia, show persps within each pset when showing a completing-read over psets
 
 ;;; Code:
 
@@ -38,12 +41,19 @@
 (defcustom psets/persp-dir-aliases-alist '()
   "Alist of aliases to use as persp names in place of matching directory names when
 opening a directory as a persp."
-  :type 'list
+  :type '(alist :key-type string :value-type string)
   :group 'perspective-sets)
 
 (defcustom psets/default-search-dir (concat (getenv "HOME") "/")
   "Directory to use as default when not provided one for `psets/open-prompted-dir-as-persp'."
-  :type 'string  ; path
+  :type 'directory
+  :group 'perspective-sets)
+
+(defcustom psets/setup-persp-from-opened-dir-hook nil
+  "Hook to run when a new persp is created from an opened dir
+(i.e. `psets/open-dir-as-pset' and `psets/open-dir-as-persp'. The
+sole argument passed to these function(s) is the full path of the opened dir."
+  :type 'hook  ; parameter list: (dir)
   :group 'perspective-sets)
 
 (defun psets/full-persp-name (pset-name persp-name)
@@ -226,8 +236,34 @@ Example invocations:
          (persp-name (file-name-nondirectory dir))
          (preferred-name (cdr (assoc persp-name psets/persp-dir-aliases-alist))))
     (psets/switch-persp (or preferred-name persp-name) (psets/extract-pset-from-full-persp-name))
+    (run-hook-with-args 'psets/setup-persp-from-opened-dir-hook dir)
     (when (functionp post-hook)
       (apply post-hook (list dir)))))
+
+(defun psets/open-dir-as-pset (&optional dir search-dir post-hook)
+  "See `psets/open-dir-as-persp' for close-enough coverage of
+arguments and usage. This function creates a new pset then opens and
+bootstraps a persp for each dir within DIR instead of opening DIR as a
+persp directly. POST-HOOK and `psets/new-persp-from-opened-dir-hook'
+are ran for each persp and are passed that persp's directory as the
+only argument."
+  (interactive)
+  (cl-assert (file-directory-p
+              (or search-dir
+                  (setq search-dir psets/default-search-dir))))
+  (cl-assert (file-directory-p
+              (or dir
+                  (setq dir (read-directory-name "Open dir as pset: " search-dir nil t)))))
+  (let* ((pset-dir (psets//trim-dir-trailing-slash dir))
+         (pset-name (file-name-nondirectory pset-dir)))
+    (dolist (persp-dir (directory-files pset-dir t "^[^.]"))  ; for now, hardcode exclusion on hidden dirs
+      (when (file-directory-p persp-dir)
+        (let* ((persp-name (file-name-nondirectory persp-dir))
+               (preferred-name (cdr (assoc persp-name psets/persp-dir-aliases-alist))))
+          (psets/switch-persp (or preferred-name persp-name) pset-name)
+          (run-hook-with-args 'psets/setup-persp-from-opened-dir-hook persp-dir)
+          (when (functionp post-hook)
+            (apply post-hook (list dir))))))))
 
 (defun psets//trim-dir-trailing-slash (dir)
   "If present, removes a trailing slash from a directory path.
