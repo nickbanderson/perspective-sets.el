@@ -35,6 +35,17 @@
   :type 'string
   :group 'perspective-sets)
 
+(defcustom psets/persp-dir-aliases-alist '()
+  "Alist of aliases to use as persp names in place of matching directory names when
+opening a directory as a persp."
+  :type 'list
+  :group 'perspective-sets)
+
+(defcustom psets/default-search-dir (concat (getenv "HOME") "/")
+  "Directory to use as default when not provided one for `psets/open-prompted-dir-as-persp'."
+  :type 'string  ; path
+  :group 'perspective-sets)
+
 (defun psets/full-persp-name (pset-name persp-name)
   "Defines how to map the name of a persp and its pset into a true, unique persp name."
   (concat pset-name psets/delimiter persp-name))
@@ -189,4 +200,34 @@ This should be ran right after loading this package, `perspective-sets'."
     (persp-rename (concat target-pset-name
                           psets/delimiter
                           (psets/extract-persp-from-full-persp-name)))))
+
+(defun psets/open-dir-as-persp (&optional dir search-dir post-hook)
+  "If called with nil DIR, prompt for dir to open as a persp in the
+current pset starting from SEARCH-DIR if non-nil or
+`psets/default-search-dir'. If POST-HOOK is non-nil, call it after
+opening the new persp with one argument: DIR.
+
+Example invocations:
+- (psets/open-dir-as-persp)
+- (psets/open-dir-as-persp nil \"~/code\")
+- (psets/open-dir-as-persp \"~/code/tem\")
+- (psets/open-dir-as-persp \"~/code/tem\" nil
+                           #'(lambda (dir)
+                             (message \"hi from %s\" dir)))
+"
+  (interactive)
+  (cl-assert (file-directory-p
+              (or search-dir
+                  (setq search-dir psets/default-search-dir))))
+  (cl-assert (file-directory-p
+              (or dir
+                  (setq dir (read-directory-name "Open dir as persp: " search-dir nil t)))))
+  ;; trim trailing slash from dir if needed
+  (when (string= (file-name-nondirectory dir) "")
+    (setq dir (substring dir 0 (1- (length dir)))))
+  (let* ((persp-name (file-name-nondirectory dir))
+         (preferred-name (cdr (assoc persp-name psets/persp-dir-aliases-alist))))
+    (psets/switch-persp (or preferred-name persp-name) (psets/extract-pset-from-full-persp-name))
+    (when (functionp post-hook)
+      (apply post-hook (list dir)))))
 (provide 'perspective-sets)
