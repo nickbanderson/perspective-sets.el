@@ -178,24 +178,24 @@ This should be ran right after loading this package, `perspective-sets'."
     (unless (string= (persp-current-name) new-full-persp-name)
       (persp-rename new-full-persp-name))))
 
-;; TODO not sound yet, failed on se-rs
 (defun psets/rename-pset (&optional new-pset-name)
   "Rename a pset, which renames its underlying full-persp-names."
   (interactive "i")
-  (let* ((new-pset-name (or new-pset-name
-                            (read-from-minibuffer
-                             (concat "Rename pset from \""
-                                     (psets/extract-pset-from-full-persp-name)
-                                     "\": ")
-                             (psets/extract-pset-from-full-persp-name)))))
-    (mapc
-     (lambda (persp-name)
-       (psets/switch-persp persp-name)
-       (let ((new-full-persp-name (psets/full-persp-name
-                                   new-pset-name
-                                   (psets/extract-persp-from-full-persp-name))))
-         (persp-rename new-full-persp-name)))
-     (psets/list-persps-in-pset))))
+  (let ((new-pset-name
+         (or new-pset-name
+             (read-from-minibuffer
+              (concat "Rename pset from \"" (psets/extract-pset-from-full-persp-name) "\": ")
+              (psets/extract-pset-from-full-persp-name)))))
+    (dolist (persp-name (seq-map
+                         (lambda (persp-name)
+                           (psets/full-persp-name (psets/extract-pset-from-full-persp-name)
+                                                  persp-name))
+                         (psets/list-persps-in-pset)))
+      (persp-switch persp-name)
+      (let ((new-full-persp-name (psets/full-persp-name
+                                  new-pset-name
+                                  (psets/extract-persp-from-full-persp-name))))
+        (persp-rename new-full-persp-name)))))
 
 (defun psets/move-persp-to-pset (&optional target-pset-name)
   (interactive "i")
