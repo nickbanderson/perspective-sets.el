@@ -44,6 +44,15 @@ opening a directory as a persp."
   :type '(alist :key-type string :value-type string)
   :group 'perspective-sets)
 
+(defcustom psets/remote-host-persp-name-setter
+  (lambda (original-persp-name remote-hostname)
+    (s-concat original-persp-name (when remote-hostname (s-concat "-" remote-hostname))))
+  "When a persp is created from a directory on a remote host, mutate
+that new perp's name with this function (e.g. add the remote hostname
+as suffix: mycodebase on myserver -> mycodebase-myserver)."
+  :type 'function  ; parameter list: (original-persp-name remote-hostname
+  :group 'perspective-sets)
+
 (defcustom psets/default-search-dir (concat (getenv "HOME") "/")
   "Directory to use as default when not provided one for `psets/open-prompted-dir-as-persp'."
   :type 'directory
@@ -230,8 +239,14 @@ Example invocations:
                   (setq dir (read-directory-name "Open dir as persp: " search-dir nil t)))))
   (let* ((dir (psets//trim-dir-trailing-slash dir))
          (persp-name (file-name-nondirectory dir))
-         (preferred-name (cdr (assoc persp-name psets/persp-dir-aliases-alist))))
-    (psets/switch-persp (or preferred-name persp-name) (psets/extract-pset-from-full-persp-name))
+         (preferred-name (or (cdr (assoc persp-name psets/persp-dir-aliases-alist)) persp-name))
+         (remote-hostname (when (file-remote-p dir)
+                              ;; works at least for "/ssh:myremoteserver:/some/path"
+                              (substring (file-remote-p dir) (length "/ssh:") -1)))
+         (final-name (funcall psets/remote-host-persp-name-setter
+                              preferred-name
+                              remote-hostname)))
+    (psets/switch-persp final-name (psets/extract-pset-from-full-persp-name))
     (run-hook-with-args 'psets/setup-persp-from-opened-dir-hook dir)
     (when (functionp post-hook)
       (apply post-hook (list dir)))))
