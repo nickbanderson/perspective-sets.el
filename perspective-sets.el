@@ -142,6 +142,36 @@ This should be ran right after loading this package, `perspective-sets'."
     (let ((persp-name (completing-read "Switch to persp: " (psets/list-persps-in-pset pset-name))))
       (persp-switch (psets/full-persp-name pset-name persp-name)))))
 
+(defun psets/switch-last-pset ()
+  "Switch to the last active pset."
+  (interactive)
+  (let* ((persp-sort 'access)
+         (persp-name-history-in-other-psets (thread-last
+                       (persp-names)
+                       (seq-rest)  ; first element is always the current persp
+                       (seq-filter (lambda (full-persp-name)
+                                     (not (string=
+                                      (string-trim full-persp-name nil (format "%s.*" psets/delimiter))
+                                                   (psets/extract-pset-from-full-persp-name)))))))
+         (last-accessed-persp-in-another-pset (seq-first persp-name-history-in-other-psets)))
+    (when last-accessed-persp-in-another-pset  ; value will be nil if there is only one pset
+      (persp-switch last-accessed-persp-in-another-pset))))
+
+(defun psets/switch-last-persp ()
+  "Switch to the last active persp in the current pset."
+  (interactive)
+  (let* ((persp-sort 'access)
+         (persp-name-history-in-current-pset (thread-last
+                       (persp-names)
+                       (seq-rest)  ; first element is always the current persp
+                       (seq-filter (lambda (full-persp-name)
+                                     (string=
+                                      (psets/extract-pset-from-full-persp-name full-persp-name)
+                                      (psets/extract-pset-from-full-persp-name))))))
+         (last-persp-in-current-pset (seq-first persp-name-history-in-current-pset)))
+    (when last-persp-in-current-pset  ; value will be nil if there is only one persp in current pset
+      (persp-switch last-persp-in-current-pset))))
+
 (defun psets/switch-persp (persp-name &optional pset-name)
   "Switch to persp PERSP-NAME (creating if necessary) in pset PSET-NAME or current pset."
   (interactive "i")
